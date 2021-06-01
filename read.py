@@ -8,18 +8,18 @@ class VINTFile():
         self.fileContents = self.__fileContentsI
         self.__options = {
             "CATCODES": [
-                ["\\"],  # Start Command
-                ["{"],  # Start Group
-                ["}"],  # End Group
-                ["@"],  # Mode Switch
-                ["\n", "\r"],  # End Of Line
-                [" ", "\t"],  # Spacer
-                ["&"],  # Alignment char
-                ["$"],  # Variable marker
-                [],  # Short Command - langauge defined
-                ["%"],  # Comment
-                [],  # Other
-                [],  # Invalid
+                ["\\"],  # Start Command 0
+                ["{"],  # Start Group 1
+                ["}"],  # End Group 2
+                ["@"],  # Mode Switch 3
+                ["\n", "\r"],  # End Of Line 4
+                [" ", "\t"],  # Spacer 5
+                ["&"],  # Alignment char 6
+                ["$"],  # Variable marker 7
+                [],  # Short Command - langauge defined 8
+                ["%"],  # Comment 9
+                [],  # Other 10
+                [],  # Invalid 11
                 [],
                 []
             ],
@@ -28,10 +28,11 @@ class VINTFile():
             "age": 18,
             "name": "Luca Di Bona"
         }
+        self.__statements = []
 
     def parse(self) -> None:
 
-        def parseStatement(self, statement: str) -> int:
+        def parseStatement(self, statement: str, spacer: str = "") -> None:
             pass
 
             def getCatCode(self, char: str) -> int:
@@ -55,11 +56,36 @@ class VINTFile():
             curStatement = ""
             curSpacer = ""
             statementMode = True #statement mode or spacer mode
+            groupLevel = 0
 
             for i in self.fileContents:
+
                 prevCatCode = curCatCode
                 curCatCode = getCatCode(self,i)
+
                 if statementMode:
+
                     if i in self.__options["CATCODES"][5]: #Spacer
                         statementMode = False
                         curSpacer += i
+
+                    elif i in self.__options["CATCODES"][1]: #Start Group
+                        groupLevel += 1
+                        curStatement += i
+
+                    elif i in self.__options["CATCODES"][2]: #End Group
+                        groupLevel -= 1
+                        if groupLevel == 0:
+                            pass
+                        else:
+                            pass
+
+                    elif curCatCode == prevCatCode:
+                        curStatement += i
+
+                    else:
+                        self.__statements.append([curStatement,""])
+                        curStatement = i
+
+        parseStatement(self,self.fileContents)
+
