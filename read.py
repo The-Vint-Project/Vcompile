@@ -55,6 +55,7 @@ class VINTFile():
             curCatCode = 0
             curStatement = ""
             curSpacer = ""
+            thing = [["",""]]
             statementMode = True #statement mode or spacer mode
             groupLevel = 0
 
@@ -67,13 +68,48 @@ class VINTFile():
 
                     if i in self.__options["CATCODES"][5]: #Spacer
                         statementMode = False
+                        if len(thing[groupLevel]) == 1:
+                            thing[groupLevel].append('')
+                        thing[groupLevel][1] += i
                         curSpacer += i
 
                     elif i in self.__options["CATCODES"][1]: #Start Group
                         groupLevel += 1
                         curStatement += i
+                        if len(thing) <= groupLevel:
+                           thing.append([''])
+                        thing[groupLevel][0] += i
 
                     elif i in self.__options["CATCODES"][2]: #End Group
+                        groupLevel -= 1
+                        if groupLevel < 0:
+                            pass
+                        else:
+                            pass
+
+                    elif curCatCode == prevCatCode:
+                        curStatement += i
+                        thing[groupLevel][0] += i
+
+                    else:
+                        self.__statements.append([curStatement,""])
+                        curStatement = i
+                        thing[groupLevel][0] = i
+
+                else:
+
+                    if i in self.__options["CATCODES"][5]: #Spacer
+                        thing[groupLevel][1] += i
+                        curSpacer += i
+
+                    elif i in self.__options["CATCODES"][1]: #Start Group
+                        statementMode = True
+                        groupLevel += 1
+                        curStatement += i
+                        thing[groupLevel][0] += 1
+
+                    elif i in self.__options["CATCODES"][2]: #End Group
+                        statementMode = True
                         groupLevel -= 1
                         if groupLevel == 0:
                             pass
@@ -81,11 +117,21 @@ class VINTFile():
                             pass
 
                     elif curCatCode == prevCatCode:
+                        statementMode = True
                         curStatement += i
+                        thing[groupLevel][0] += 1
 
                     else:
+                        statementMode = True
                         self.__statements.append([curStatement,""])
                         curStatement = i
+                        thing[groupLevel][0] = i
+
+
+
+
+                    print(thing[groupLevel][0])
+                    print(thing[groupLevel][1])
 
         parseStatement(self,self.fileContents)
 
