@@ -58,7 +58,9 @@ class VINTFile():
             thing = [["",""]]
             statementMode = True #statement mode or spacer mode
             groupLevel = 0
+            line = 0
 
+            self.fileContents += "X" #adds an extra character to text that will be processed
             for i in self.fileContents:
 
                 prevCatCode = curCatCode
@@ -66,7 +68,9 @@ class VINTFile():
 
                 if statementMode:
 
-                    if i in self.__options["CATCODES"][5]: #Spacer
+                    if i in (self.__options["CATCODES"][5] + self.__options["CATCODES"][4]): #Spacer or new line
+                        if i in self.__options["CATCODES"][4]:
+                            line += 1
                         statementMode = False
                         if len(thing[groupLevel]) == 1:
                             thing[groupLevel].append('')
@@ -83,9 +87,11 @@ class VINTFile():
                     elif i in self.__options["CATCODES"][2]: #End Group
                         groupLevel -= 1
                         if groupLevel < 0:
-                            pass
+                            raise Exception(f"Closing brace without matching opening brace on line {line}")
                         else:
-                            pass
+                            self.__statements.append([curStatement,""])
+                            curStatement = i
+                            thing[groupLevel][0] = i
 
                     elif curCatCode == prevCatCode:
                         curStatement += i
@@ -102,28 +108,35 @@ class VINTFile():
                         thing[groupLevel][1] += i
                         curSpacer += i
 
+                    if i in self.__options["CATCODES"][4]: #New line
+                        thing[groupLevel][1] += i
+                        curSpacer += i
+                        line += 1
+
                     elif i in self.__options["CATCODES"][1]: #Start Group
                         statementMode = True
                         groupLevel += 1
                         curStatement += i
-                        thing[groupLevel][0] += 1
+                        thing[groupLevel][0] += i
 
                     elif i in self.__options["CATCODES"][2]: #End Group
                         statementMode = True
                         groupLevel -= 1
-                        if groupLevel == 0:
-                            pass
+                        if groupLevel < 0:
+                            raise Exception(f"Closing brace without matching opening brace on line {line}")
                         else:
-                            pass
+                            self.__statements.append([curStatement,curSpacer])
+                            curStatement = i
+                            thing[groupLevel][0] = i
 
                     elif curCatCode == prevCatCode:
                         statementMode = True
                         curStatement += i
-                        thing[groupLevel][0] += 1
+                        thing[groupLevel][0] += i
 
                     else:
                         statementMode = True
-                        self.__statements.append([curStatement,""])
+                        self.__statements.append([curStatement,curSpacer])
                         curStatement = i
                         thing[groupLevel][0] = i
 
@@ -131,7 +144,15 @@ class VINTFile():
 
 
                     print(thing[groupLevel][0])
-                    print(thing[groupLevel][1])
+                    try:
+                        print(thing[groupLevel][1])
+                    except:
+                        pass
+
+                print(i)
+                print(self.__statements)
+                print(statementMode)
+                print(f"X{curSpacer}X")
 
         parseStatement(self,self.fileContents)
 
