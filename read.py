@@ -91,6 +91,7 @@ class VINTFile():
                         else:
                             self.__statements.append([curStatement,""])
                             curStatement = i
+                            curSpacer = ''
                             thing[groupLevel][0] = i
 
                     elif curCatCode == prevCatCode:
@@ -100,6 +101,7 @@ class VINTFile():
                     else:
                         self.__statements.append([curStatement,""])
                         curStatement = i
+                        curSpacer = ''
                         thing[groupLevel][0] = i
 
                 else:
@@ -108,7 +110,7 @@ class VINTFile():
                         thing[groupLevel][1] += i
                         curSpacer += i
 
-                    if i in self.__options["CATCODES"][4]: #New line
+                    elif i in self.__options["CATCODES"][4]: #New line
                         thing[groupLevel][1] += i
                         curSpacer += i
                         line += 1
@@ -116,28 +118,40 @@ class VINTFile():
                     elif i in self.__options["CATCODES"][1]: #Start Group
                         statementMode = True
                         groupLevel += 1
-                        curStatement += i
-                        thing[groupLevel][0] += i
+                        if len(thing[groupLevel]) != 1:
+                            thing[groupLevel][1] = ''
+                        self.__statements.append([curStatement,curSpacer])
+                        curStatement = i
+                        curSpacer = ''
+                        thing[groupLevel][0] = i
 
                     elif i in self.__options["CATCODES"][2]: #End Group
                         statementMode = True
                         groupLevel -= 1
+                        if len(thing[groupLevel]) != 1:
+                            thing[groupLevel][1] = ''
                         if groupLevel < 0:
                             raise Exception(f"Closing brace without matching opening brace on line {line}")
                         else:
                             self.__statements.append([curStatement,curSpacer])
                             curStatement = i
+                            curSpacer = ''
                             thing[groupLevel][0] = i
 
                     elif curCatCode == prevCatCode:
                         statementMode = True
+                        if len(thing[groupLevel]) != 1:
+                            thing[groupLevel][1] = ''
                         curStatement += i
                         thing[groupLevel][0] += i
 
                     else:
                         statementMode = True
+                        if len(thing[groupLevel]) != 1:
+                            thing[groupLevel][1] = ''
                         self.__statements.append([curStatement,curSpacer])
                         curStatement = i
+                        curSpacer = ''
                         thing[groupLevel][0] = i
 
 
