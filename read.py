@@ -55,10 +55,10 @@ class VINTFile():
             curCatCode = 0
             curStatement = ""
             curSpacer = ""
-            thing = [["",""]]
             statementMode = True #statement mode or spacer mode
             groupLevel = 0
             line = 0
+            groupings = [[]]
 
             self.fileContents += "X" #adds an extra character to text that will be processed
             for i in self.fileContents:
@@ -72,101 +72,84 @@ class VINTFile():
                         if i in self.__options["CATCODES"][4]:
                             line += 1
                         statementMode = False
-                        if len(thing[groupLevel]) == 1:
-                            thing[groupLevel].append('')
-                        thing[groupLevel][1] += i
                         curSpacer += i
 
                     elif i in self.__options["CATCODES"][1]: #Start Group
+                        groupings[groupLevel].append([len(self.__statements)+1])
+                        self.__statements.append([curStatement,""])
+                        curStatement = i
+                        curSpacer = ''
                         groupLevel += 1
-                        curStatement += i
-                        if len(thing) <= groupLevel:
-                           thing.append([''])
-                        thing[groupLevel][0] += i
+                        if len(groupings) <= groupLevel:
+                            groupings.append([])
 
                     elif i in self.__options["CATCODES"][2]: #End Group
                         groupLevel -= 1
+                        groupings[groupLevel][-1].append(len(self.__statements)+1)
                         if groupLevel < 0:
                             raise Exception(f"Closing brace without matching opening brace on line {line}")
                         else:
                             self.__statements.append([curStatement,""])
                             curStatement = i
                             curSpacer = ''
-                            thing[groupLevel][0] = i
 
                     elif curCatCode == prevCatCode:
                         curStatement += i
-                        thing[groupLevel][0] += i
 
                     else:
                         self.__statements.append([curStatement,""])
                         curStatement = i
                         curSpacer = ''
-                        thing[groupLevel][0] = i
 
                 else:
 
                     if i in self.__options["CATCODES"][5]: #Spacer
-                        thing[groupLevel][1] += i
                         curSpacer += i
 
                     elif i in self.__options["CATCODES"][4]: #New line
-                        thing[groupLevel][1] += i
                         curSpacer += i
                         line += 1
 
                     elif i in self.__options["CATCODES"][1]: #Start Group
+                        groupings[groupLevel].append([len(self.__statements)+1])
                         statementMode = True
                         groupLevel += 1
-                        if len(thing[groupLevel]) != 1:
-                            thing[groupLevel][1] = ''
+                        if len(groupings) <= groupLevel:
+                            groupings.append([])
                         self.__statements.append([curStatement,curSpacer])
                         curStatement = i
                         curSpacer = ''
-                        thing[groupLevel][0] = i
 
                     elif i in self.__options["CATCODES"][2]: #End Group
                         statementMode = True
                         groupLevel -= 1
-                        if len(thing[groupLevel]) != 1:
-                            thing[groupLevel][1] = ''
+                        groupings[groupLevel][-1].append(len(self.__statements)+1)
                         if groupLevel < 0:
                             raise Exception(f"Closing brace without matching opening brace on line {line}")
                         else:
                             self.__statements.append([curStatement,curSpacer])
                             curStatement = i
                             curSpacer = ''
-                            thing[groupLevel][0] = i
 
                     elif curCatCode == prevCatCode:
                         statementMode = True
-                        if len(thing[groupLevel]) != 1:
-                            thing[groupLevel][1] = ''
                         curStatement += i
-                        thing[groupLevel][0] += i
 
                     else:
                         statementMode = True
-                        if len(thing[groupLevel]) != 1:
-                            thing[groupLevel][1] = ''
                         self.__statements.append([curStatement,curSpacer])
                         curStatement = i
                         curSpacer = ''
-                        thing[groupLevel][0] = i
 
+            #check that there are no missing }s
+            for i in groupings:
+                if len(i) == 0:
+                    groupings.remove(i)
+                for j in i:
+                    if len(j) != 2:
+                        raise Exception("Missing closing brace")
+            print("here")
 
-
-
-                    print(thing[groupLevel][0])
-                    try:
-                        print(thing[groupLevel][1])
-                    except:
-                        pass
-
-                print(i)
-                print(self.__statements)
-                print(statementMode)
-                print(f"X{curSpacer}X")
 
         parseStatement(self,self.fileContents)
 
