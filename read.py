@@ -1,3 +1,4 @@
+
 class VINTFile():
 
     def __init__(self, fileName: str) -> None:
@@ -20,7 +21,7 @@ class VINTFile():
                 ["%"],  # Comment 9
                 [],  # Other 10
                 [],  # Invalid 11
-                [],
+                [],  # Letter 12
                 []
             ],
             "COMMANDCODES": [  # Langauge defined, in VINT =-+^_()[]:|<>~-≈#*`
@@ -55,7 +56,9 @@ class VINTFile():
             curCatCode = 0
             curStatement = ""
             curSpacer = ""
-            statementMode = True #statement mode or spacer mode
+            mode = "statement" #statement/spacer/[pre]command/comment
+            ifStatementMode = True #statement mode or spacer mode
+            ifCommandMode = False #true if in command
             groupLevel = 0
             line = 0
             groupings = [[]]
@@ -66,13 +69,28 @@ class VINTFile():
                 prevCatCode = curCatCode
                 curCatCode = getCatCode(self,i)
 
-                if statementMode:
+                if mode == "precommand":
+
+                    if i in self.__options["CATCODES"][0]:
+                        curStatement += i
+
+                    if i:
+                        pass
+
+
+                elif mode == "statement":
 
                     if i in (self.__options["CATCODES"][5] + self.__options["CATCODES"][4]): #Spacer or new line
                         if i in self.__options["CATCODES"][4]:
                             line += 1
-                        statementMode = False
+                        mode = "spacer"
                         curSpacer += i
+
+                    elif i in self.__options["CATCODES"][0]:
+                        mode = "precommand"
+                        self.__statements.append([curStatement,""])
+                        curStatement = i
+                        curSpacer = ""
 
                     elif i in self.__options["CATCODES"][1]: #Start Group
                         groupings[groupLevel].append([len(self.__statements)+1])
@@ -106,13 +124,19 @@ class VINTFile():
                     if i in self.__options["CATCODES"][5]: #Spacer
                         curSpacer += i
 
+                    elif i in self.__options["CATCODES"][0]:
+                        mode = "precommand"
+                        self.__statements.append([curStatement,curSpacer])
+                        curStatement = i
+                        curSpacer = ""
+
                     elif i in self.__options["CATCODES"][4]: #New line
                         curSpacer += i
                         line += 1
 
                     elif i in self.__options["CATCODES"][1]: #Start Group
                         groupings[groupLevel].append([len(self.__statements)+1])
-                        statementMode = True
+                        mode = "statement"
                         groupLevel += 1
                         if len(groupings) <= groupLevel:
                             groupings.append([])
@@ -121,7 +145,7 @@ class VINTFile():
                         curSpacer = ''
 
                     elif i in self.__options["CATCODES"][2]: #End Group
-                        statementMode = True
+                        mode = "statement"
                         groupLevel -= 1
                         groupings[groupLevel][-1].append(len(self.__statements)+1)
                         if groupLevel < 0:
@@ -132,11 +156,11 @@ class VINTFile():
                             curSpacer = ''
 
                     elif curCatCode == prevCatCode:
-                        statementMode = True
+                        mode = "statement"
                         curStatement += i
 
                     else:
-                        statementMode = True
+                        mode = "statement"
                         self.__statements.append([curStatement,curSpacer])
                         curStatement = i
                         curSpacer = ''
@@ -152,4 +176,3 @@ class VINTFile():
 
 
         parseStatement(self,self.fileContents)
-
