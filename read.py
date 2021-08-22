@@ -69,14 +69,30 @@ class VINTFile():
                 prevCatCode = curCatCode
                 curCatCode = getCatCode(self,i)
 
-                if mode == "precommand":
+                if mode == "command":
 
-                    if i in self.__options["CATCODES"][0]:
-                        curStatement += i
+                    if len(curStatement) > 1:
 
-                    if i:
                         pass
 
+                    else:
+
+                        if i in (self.__options["CATCODES"][0] + self.__options["CATCODES"][1] +
+                        self.__options["CATCODES"][2] + self.__options["CATCODES"][3] +
+                        self.__options["CATCODES"][4] + self.__options["CATCODES"][5] +
+                        self.__options["CATCODES"][6] + self.__options["CATCODES"][7] +
+                        self.__options["CATCODES"][9]):
+
+                            if i in self.__options["CATCODES"][4]:
+                                line += 1
+
+                            curStatement += i
+                            mode = "statement"
+                            self.__statements.append([curStatement,""])
+                            curStatement = ""
+
+                        else:
+                            curStatement += i
 
                 elif mode == "statement":
 
