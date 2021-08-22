@@ -4,7 +4,7 @@ def isEven(number):
     evenNumbers=[]
     for i in range((number)):
         evenNumbers.append(i*2)
-j
+
     if number in evenNumbers:
         return True
     else:
