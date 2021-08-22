@@ -73,7 +73,47 @@ class VINTFile():
 
                     if len(curStatement) > 1:
 
-                        pass
+                        if i in self.__options["CATCODES"][0]:
+
+                            #TODO flag as command
+
+                            self.__statements.append([curStatement,""])
+                            curStatement = i
+
+                        elif i in self.__options["CATCODES"][1]: #Start Group
+                            groupings[groupLevel].append([len(self.__statements)+1])
+                            self.__statements.append([curStatement,""])
+                            curStatement = i
+                            curSpacer = ''
+                            groupLevel += 1
+                            if len(groupings) <= groupLevel:
+                                groupings.append([])
+
+                        elif i in self.__options["CATCODES"][2]: #End Group
+                            groupLevel -= 1
+                            groupings[groupLevel][-1].append(len(self.__statements)+1)
+                            if groupLevel < 0:
+                                raise Exception(f"Closing brace without matching opening brace on line {line}")
+                            else:
+                                self.__statements.append([curStatement,""])
+                                curStatement = i
+                                curSpacer = ''
+
+                                #TODO error on \test{}}
+
+                        elif i in (self.__options["CATCODES"][5] + self.__options["CATCODES"][4]):
+                            if i in self.__options["CATCODES"][4]:
+                                line += 1
+                            mode = spacer
+                            curSpacer += i
+
+                        elif curCatCode == prevCatCode:
+                            curStatement += i
+
+                        else:
+                            self.__statements.append([curStatement,""])
+                            curStatement = i
+                            curSpacer = ""
 
                     else:
 

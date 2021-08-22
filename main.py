@@ -7,3 +7,4 @@ os.chdir(dname)
 
 file=VINTFile("test.vmf")
 file.parse()
+print()
