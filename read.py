@@ -30,6 +30,7 @@ class VINTFile():
             "name": "Luca Di Bona"
         }
         self.__statements = []
+        self.__commands = []
 
     def parse(self) -> None:
 
@@ -62,6 +63,7 @@ class VINTFile():
             groupLevel = 0
             line = 0
             groupings = [[]]
+            curCommandName=""
 
             self.fileContents += "X" #adds an extra character to text that will be processed
             for i in self.fileContents:
@@ -82,10 +84,8 @@ class VINTFile():
 
                         elif i in self.__options["CATCODES"][1]: #Start Group
                             groupings[groupLevel].append([len(self.__statements)+1])
-                            self.__statements.append([curStatement,""])
-                            curStatement = i
-                            curSpacer = ''
                             groupLevel += 1
+                            curStatement += i
                             if len(groupings) <= groupLevel:
                                 groupings.append([])
 
@@ -95,10 +95,7 @@ class VINTFile():
                             if groupLevel < 0:
                                 raise Exception(f"Closing brace without matching opening brace on line {line}")
                             else:
-                                self.__statements.append([curStatement,""])
-                                curStatement = i
-                                curSpacer = ''
-
+                                curStatement += i
                                 #TODO error on \test{}}
 
                         elif i in (self.__options["CATCODES"][5] + self.__options["CATCODES"][4]):
@@ -109,13 +106,17 @@ class VINTFile():
 
                         elif curCatCode == prevCatCode:
                             curStatement += i
+                            curCommandName += i
 
                         else:
                             self.__statements.append([curStatement,""])
+                            self.__commands.append(Command(curCommandName,curStatement)) #TODO write a function to do this and get the arguments and full text
                             curStatement = i
                             curSpacer = ""
 
                     else:
+
+                        curCommand.addToName(i)
 
                         if i in (self.__options["CATCODES"][0] + self.__options["CATCODES"][1] +
                         self.__options["CATCODES"][2] + self.__options["CATCODES"][3] +
@@ -143,10 +144,11 @@ class VINTFile():
                         curSpacer += i
 
                     elif i in self.__options["CATCODES"][0]:
-                        mode = "precommand"
+                        mode = "command"
                         self.__statements.append([curStatement,""])
                         curStatement = i
                         curSpacer = ""
+                        curCommand = Command("",i)
 
                     elif i in self.__options["CATCODES"][1]: #Start Group
                         groupings[groupLevel].append([len(self.__statements)+1])
@@ -181,9 +183,10 @@ class VINTFile():
                         curSpacer += i
 
                     elif i in self.__options["CATCODES"][0]:
-                        mode = "precommand"
+                        mode = "command"
                         self.__statements.append([curStatement,curSpacer])
                         curStatement = i
+                        curCommand = Command("",i)
                         curSpacer = ""
 
                     elif i in self.__options["CATCODES"][4]: #New line
@@ -232,3 +235,14 @@ class VINTFile():
 
 
         parseStatement(self,self.fileContents)
+
+class Command():
+
+    def __init__(self,name:str,text:str,arguments:list = []) -> None:
+        self.__name = name
+        self.__fullText = text
+        self.__arguments = arguments
+
+    def addToName(self,text:str) -> None:
+        self.__name += text
+        self.__fullText += text
