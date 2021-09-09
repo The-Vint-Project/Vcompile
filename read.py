@@ -69,10 +69,10 @@ class VINTFile():
                     int: the position of the end statement
                 """
                 for i in groupings:
-                    for j in groupings[i]:
-                        if begin == groupings[i][j][0]:
-                            if len(groupings[i][j]) == 2:
-                                return(groupings[i][j][1])
+                    for j in i:
+                        if begin == j[0]:
+                            if len(j) == 2:
+                                return(j[1])
                             else:
                                 raise Exception("End not found")
                 raise Exception("Start not found")
@@ -198,9 +198,9 @@ class VINTFile():
             groupBegins = []
             groupEnds = []
             for i in groupings:
-                for j in groupings[i]:
-                    groupBegins += groupings[i][j][0]
-                    groupEnds += groupings[i][j][1]
+                for j in i:
+                    groupBegins.append(j[0])
+                    groupEnds.append(j[1])
 
             #processes commands
             for i in commands:
