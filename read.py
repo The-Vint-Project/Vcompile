@@ -54,6 +54,29 @@ class VINTFile():
                         if char == j:
                             return(i)
 
+            def getEndGroup(self, begin: int, groupings: list) -> int:
+                """
+                Gets the position of the corresponding end statement from a start statement
+
+                Args:
+                    begin (int): the position of the start statement
+
+                Exceptions:
+                    start not found: the start is not the begining of a group
+                    end not found: the start has no corresponding end
+
+                Returns:
+                    int: the position of the end statement
+                """
+                for i in groupings:
+                    for j in groupings[i]:
+                        if begin == groupings[i][j][0]:
+                            if len(groupings[i][j]) == 2:
+                                return(groupings[i][j][1])
+                            else:
+                                raise Exception("End not found")
+                raise Exception("Start not found")
+
             curCatCode = 0
             curStatement = ""
             curSpacer = ""
@@ -63,7 +86,7 @@ class VINTFile():
             groupLevel = 0
             line = 0
             groupings = [[]]
-            curCommandName=""
+            commands = []
 
             self.fileContents += "X" #adds an extra character to text that will be processed
             for i in self.fileContents:
@@ -71,71 +94,8 @@ class VINTFile():
                 prevCatCode = curCatCode
                 curCatCode = getCatCode(self,i)
 
-                if mode == "command":
 
-                    if len(curStatement) > 1:
-
-                        if i in self.__options["CATCODES"][0]:
-
-                            #TODO flag as command
-
-                            self.__statements.append([curStatement,""])
-                            curStatement = i
-
-                        elif i in self.__options["CATCODES"][1]: #Start Group
-                            groupings[groupLevel].append([len(self.__statements)+1])
-                            groupLevel += 1
-                            curStatement += i
-                            if len(groupings) <= groupLevel:
-                                groupings.append([])
-
-                        elif i in self.__options["CATCODES"][2]: #End Group
-                            groupLevel -= 1
-                            groupings[groupLevel][-1].append(len(self.__statements)+1)
-                            if groupLevel < 0:
-                                raise Exception(f"Closing brace without matching opening brace on line {line}")
-                            else:
-                                curStatement += i
-                                #TODO error on \test{}}
-
-                        elif i in (self.__options["CATCODES"][5] + self.__options["CATCODES"][4]):
-                            if i in self.__options["CATCODES"][4]:
-                                line += 1
-                            mode = spacer
-                            curSpacer += i
-
-                        elif curCatCode == prevCatCode:
-                            curStatement += i
-                            curCommandName += i
-
-                        else:
-                            self.__statements.append([curStatement,""])
-                            self.__commands.append(Command(curCommandName,curStatement)) #TODO write a function to do this and get the arguments and full text
-                            curStatement = i
-                            curSpacer = ""
-
-                    else:
-
-                        curCommand.addToName(i)
-
-                        if i in (self.__options["CATCODES"][0] + self.__options["CATCODES"][1] +
-                        self.__options["CATCODES"][2] + self.__options["CATCODES"][3] +
-                        self.__options["CATCODES"][4] + self.__options["CATCODES"][5] +
-                        self.__options["CATCODES"][6] + self.__options["CATCODES"][7] +
-                        self.__options["CATCODES"][9]):
-
-                            if i in self.__options["CATCODES"][4]:
-                                line += 1
-
-                            curStatement += i
-                            mode = "statement"
-                            self.__statements.append([curStatement,""])
-                            curStatement = ""
-
-                        else:
-                            curStatement += i
-
-                elif mode == "statement":
+                if ifStatementMode:
 
                     if i in (self.__options["CATCODES"][5] + self.__options["CATCODES"][4]): #Spacer or new line
                         if i in self.__options["CATCODES"][4]:
@@ -148,6 +108,7 @@ class VINTFile():
                         self.__statements.append([curStatement,""])
                         curStatement = i
                         curSpacer = ""
+                        commands.append(len(self.__statements))
                         curCommand = Command("",i)
 
                     elif i in self.__options["CATCODES"][1]: #Start Group
@@ -186,6 +147,7 @@ class VINTFile():
                         mode = "command"
                         self.__statements.append([curStatement,curSpacer])
                         curStatement = i
+                        commands.append(len(self.__statements))
                         curCommand = Command("",i)
                         curSpacer = ""
 
@@ -231,18 +193,53 @@ class VINTFile():
                 for j in i:
                     if len(j) != 2:
                         raise Exception("Missing closing brace")
+
+            #creates lists of opening and closing groups
+            groupBegins = []
+            groupEnds = []
+            for i in groupings:
+                for j in groupings[i]:
+                    groupBegins += groupings[i][j][0]
+                    groupEnds += groupings[i][j][1]
+
+            #processes commands
+            for i in commands:
+                #creates command
+                curCommand = Command(self.__statements[i+1][0],(self.__statements[i][0]+self.__statements[i+1][0]))
+                #checks if command has arguments
+                if self.__statements[i+1][0] == "" and (i+2) in groupBegins:
+                    curCommand.ad
+                self.__commands.append(curCommand)
+
+
             print("here")
 
 
         parseStatement(self,self.fileContents)
-
+        print("here")
 class Command():
 
     def __init__(self,name:str,text:str,arguments:list = []) -> None:
-        self.__name = name
+        self.name = name
         self.__fullText = text
-        self.__arguments = arguments
+        self.arguments = arguments
 
-    def addToName(self,text:str) -> None:
-        self.__name += text
-        self.__fullText += text
+    def setFullText(self, text:str) -> None:
+        self.__fullText = text
+
+    def addArgument(self, openText:str, innerStatements:list, endText:str) -> None:
+        """
+        adds a new argument to the end of the current argument
+
+        Args:
+            openText (str): the indicator that argument begins
+            innerStatements (list): the statements inside the argument
+            endText (str): the indicator that the argument ends
+        """
+        #deduces inner text
+        innerText = ""
+        for i in innerStatements:
+            innerText += i[0]
+            innerText += i[1]
+        self.__fullText += (openText + innerText + endText)
+        self.arguments.append(innerStatements)
